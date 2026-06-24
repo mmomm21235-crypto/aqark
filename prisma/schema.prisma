@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Property {
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  area      Float
+  rooms     Int
+  bathrooms Int
+  location  String?
+  createdAt DateTime @default(now())
+}
+
+model Calculation {
+  id        String   @id @default(uuid())
+  type      String
+  input     String
+  result    String
+  createdAt DateTime @default(now())
+}
