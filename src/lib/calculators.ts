@@ -54,32 +54,35 @@ export interface RentVsBuyResult {
   years: number
   monthlyRent: number
   propertyPrice: number
+  ownershipEquity: number
 }
 
 export function calcRentVsBuy(
   propertyPrice: number,
   monthlyRent: number,
   years: number,
-  downPaymentPercent: number,
-  interestRate: number,
+  annualAppreciation: number,
   rentIncreasePercent: number
 ): RentVsBuyResult {
-  const downPayment = propertyPrice * (downPaymentPercent / 100)
-  const loanAmount = propertyPrice - downPayment
-  const monthlyRate = interestRate / 100 / 12
-  const totalPayments = years * 12
-  const monthlyPayment =
-    (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments))) /
-    (Math.pow(1 + monthlyRate, totalPayments) - 1)
-  const buyTotal = downPayment + monthlyPayment * totalPayments
+  const appreciationRate = 1 + annualAppreciation / 100
   const annualRentIncrease = 1 + rentIncreasePercent / 100
   let rentTotal = 0
   for (let y = 0; y < years; y++) {
     rentTotal += monthlyRent * 12 * Math.pow(annualRentIncrease, y)
   }
-  const buyIsBetter = buyTotal < rentTotal
-  const savings = Math.abs(buyTotal - rentTotal)
-  return { rentTotal: Math.round(rentTotal), buyTotal: Math.round(buyTotal), buyIsBetter, savings: Math.round(savings), years, monthlyRent, propertyPrice }
+  const ownershipEquity = Math.round(propertyPrice * Math.pow(appreciationRate, years))
+  const buyIsBetter = ownershipEquity > rentTotal
+  const savings = Math.abs(ownershipEquity - rentTotal)
+  return {
+    rentTotal: Math.round(rentTotal),
+    buyTotal: ownershipEquity,
+    buyIsBetter,
+    savings: Math.round(savings),
+    years,
+    monthlyRent,
+    propertyPrice,
+    ownershipEquity,
+  }
 }
 
 export interface FinishingResult {
@@ -99,11 +102,66 @@ export function calcFinishing(area: number, quality: "economy" | "standard" | "l
     luxury: { tiling: 450, plastering: 200, painting: 180, plumbing: 600, electrical: 500, carpentry: 400 },
   }
   const r = rates[quality]
-  const tiling = area * r.tiling
-  const plastering = area * r.plastering
-  const painting = area * r.painting
-  const plumbing = area * r.plumbing
-  const electrical = area * r.electrical
-  const carpentry = area * r.carpentry
-  return { tiling, plastering, painting, plumbing, electrical, carpentry, total: tiling + plastering + painting + plumbing + electrical + carpentry }
+  return {
+    tiling: area * r.tiling,
+    plastering: area * r.plastering,
+    painting: area * r.painting,
+    plumbing: area * r.plumbing,
+    electrical: area * r.electrical,
+    carpentry: area * r.carpentry,
+    total: area * (r.tiling + r.plastering + r.painting + r.plumbing + r.electrical + r.carpentry),
+  }
+}
+
+export interface ROIResult {
+  annualRentIncome: number
+  annualExpenses: number
+  netAnnualIncome: number
+  roi: number
+  paybackYears: number
+  totalReturn: number
+}
+
+export function calcROI(
+  propertyPrice: number,
+  monthlyRent: number,
+  annualMaintenance: number,
+  annualTax: number,
+  years: number
+): ROIResult {
+  const annualRentIncome = monthlyRent * 12
+  const annualExpenses = annualMaintenance + annualTax
+  const netAnnualIncome = annualRentIncome - annualExpenses
+  const roi = propertyPrice > 0 ? (netAnnualIncome / propertyPrice) * 100 : 0
+  const paybackYears = netAnnualIncome > 0 ? propertyPrice / netAnnualIncome : 0
+  const totalReturn = netAnnualIncome * years
+  return { annualRentIncome, annualExpenses, netAnnualIncome, roi: Math.round(roi * 100) / 100, paybackYears: Math.round(paybackYears * 10) / 10, totalReturn }
+}
+
+export interface MaintenanceResult {
+  buildingMaintenance: number
+  elevator: number
+  cleaning: number
+  security: number
+  electricity: number
+  water: number
+  miscellaneous: number
+  total: number
+  totalYearly: number
+}
+
+export function calcMaintenance(area: number, hasElevator: boolean, hasSecurity: boolean): MaintenanceResult {
+  const buildingMaintenance = area * 10
+  const elevator = hasElevator ? 5000 : 0
+  const cleaning = area * 5
+  const security = hasSecurity ? area * 3 : 0
+  const electricity = area * 4
+  const water = area * 2
+  const miscellaneous = area * 3
+  const monthly = buildingMaintenance + elevator + cleaning + security + electricity + water + miscellaneous
+  return {
+    buildingMaintenance, elevator, cleaning, security, electricity, water, miscellaneous,
+    total: monthly,
+    totalYearly: monthly * 12,
+  }
 }
