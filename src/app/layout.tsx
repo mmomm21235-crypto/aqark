@@ -4,6 +4,7 @@ import "./globals.css"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PWARegister } from "@/components/pwa-register"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <ThemeProvider>
+          <PWARegister />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
