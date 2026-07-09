@@ -150,6 +150,70 @@ export interface MaintenanceResult {
   totalYearly: number
 }
 
+export interface ValuationResult {
+  estimatedValue: number
+  pricePerMeter: number
+  locationScore: number
+  ageScore: number
+  specsScore: number
+  totalScore: number
+  confidence: "منخفض" | "متوسط" | "مرتفع"
+}
+
+export function calcValuation(
+  basePricePerMeter: number,
+  area: number,
+  age: number,
+  type: "سكني" | "تجاري" | "إداري",
+  finishing: "بدون" | "متوسط" | "فاخر",
+  floor: number,
+  rooms: number,
+  bathrooms: number,
+  hasElevator: boolean,
+  hasParking: boolean
+): ValuationResult {
+  let typeFactor = type === "سكني" ? 1 : type === "تجاري" ? 1.5 : 1.3
+  let finishingFactor = finishing === "بدون" ? 0.7 : finishing === "متوسط" ? 1 : 1.3
+  let ageFactor = Math.max(0.5, 1 - age * 0.02)
+  let floorFactor = floor <= 2 ? 0.95 : floor <= 5 ? 1 : floor <= 10 ? 1.05 : 1.1
+  let roomFactor = 1 + (rooms - 2) * 0.03
+  let bathFactor = 1 + (bathrooms - 1) * 0.02
+  let amenityFactor = 1 + (hasElevator ? 0.05 : 0) + (hasParking ? 0.08 : 0)
+
+  let score = typeFactor * finishingFactor * ageFactor * floorFactor * roomFactor * bathFactor * amenityFactor
+  let pricePerMeter = Math.round(basePricePerMeter * score)
+  let estimatedValue = pricePerMeter * area
+
+  let totalScore = score * 100
+  let confidence: "منخفض" | "متوسط" | "مرتفع" = totalScore > 90 ? "مرتفع" : totalScore > 70 ? "متوسط" : "منخفض"
+
+  return { estimatedValue, pricePerMeter, locationScore: basePricePerMeter, ageScore: Math.round(ageFactor * 100), specsScore: Math.round(score * 100), totalScore: Math.round(totalScore), confidence }
+}
+
+export interface TaxResult {
+  transactionTax: number
+  registrationFees: number
+  notaryFees: number
+  stampTax: number
+  total: number
+}
+
+export function calcPropertyTax(propertyValue: number, isFirstProperty: boolean): TaxResult {
+  const transactionTax = propertyValue * 0.025
+  const registrationFees = Math.min(propertyValue * 0.01, 50000)
+  const notaryFees = 2000
+  const stampTax = propertyValue * 0.005
+  const firstPropertyDiscount = isFirstProperty ? 0.5 : 0
+  const total = (transactionTax + registrationFees + stampTax) * (1 - firstPropertyDiscount) + notaryFees
+  return {
+    transactionTax: Math.round(transactionTax),
+    registrationFees: Math.round(registrationFees),
+    notaryFees,
+    stampTax: Math.round(stampTax),
+    total: Math.round(total),
+  }
+}
+
 export function calcMaintenance(area: number, hasElevator: boolean, hasSecurity: boolean): MaintenanceResult {
   const buildingMaintenance = area * 10
   const elevator = hasElevator ? 5000 : 0
